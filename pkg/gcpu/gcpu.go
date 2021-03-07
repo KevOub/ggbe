@@ -2,16 +2,13 @@ package gcpu
 
 import "fmt"
 
-/* // SplitRegister split from 16 bits to 8 bits
-type SplitRegister struct {
-	h uint16
-	l uint16
-}
+/*
+REGISTERS
+	The first four regs are general purpose 16 bits
+	Access the high and low for the individual aspects
+	Accomplished that by inline h() and f() for the SplitRegister
 
-// Function that combines the high and low bits to create
-func (r SplitRegister) f() uint16 {
-	return ((r.h << 8) | (r.l))
-} */
+*/
 
 // SplitRegister split from 16 bits to 8 bits
 type SplitRegister struct {
@@ -20,6 +17,17 @@ type SplitRegister struct {
 
 func (reg SplitRegister) l() uint16 {
 	return (reg.f & 255)
+}
+
+//Change takes the value and updates f()
+func (reg SplitRegister) Change(num uint16) {
+	reg.f = num
+	// TODO broken...
+}
+
+//Get gets the value from the register
+func (reg SplitRegister) Get() uint16 {
+	return reg.f
 }
 
 func (reg SplitRegister) h() uint16 {
@@ -36,7 +44,8 @@ type Registers struct {
 	PC int
 }
 
-func (reg Registers) show() {
+//Show displays the registers nicely
+func (reg Registers) Show() {
 	// HEADER
 	fmt.Println("ADDR\tHIGH\tLOW\tTOTAL\tTOTAL")
 	var value = ""
@@ -130,10 +139,17 @@ var CPUReg = Registers{SplitRegister{65535}, SplitRegister{0}, SplitRegister{0},
 
 // InitCPU creates cpu
 func InitCPU() {
-
+	print("CPU Started")
 }
 
 // DoInstruction does instruction
-func DoInstruction() {
+func DoInstruction(opcode uint8) {
+	switch opcode {
+	case 0x11:
+		fmt.Println(":)")
+		// fmt.Printf("%02x\n", opcode)
+	default:
+		fmt.Printf("%02x\n is not implemented", opcode)
 
+	}
 }
