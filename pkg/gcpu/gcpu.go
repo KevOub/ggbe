@@ -1,6 +1,11 @@
 package gcpu
 
-import "fmt"
+import (
+	"fmt"
+)
+
+// DEBUG decides whether to enable debugging
+var DEBUG bool
 
 /*
 REGISTERS
@@ -135,17 +140,21 @@ func (reg Registers) Show() {
 }
 
 // CPUReg are the live registers
-var CPUReg = Registers{SplitRegister{65535}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, 0, 0}
+var CPUReg = Registers{SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, 0, 0}
 
 // InitCPU creates cpu
-func InitCPU() {
-	print("CPU Started")
+func InitCPU(debug bool) {
+	DEBUG = debug
+	fmt.Println("CPU Started")
+	if DEBUG {
+		fmt.Println("\t debugging active")
+	}
 }
 
 // DoInstruction does instruction
 func DoInstruction(opcode uint8) {
 	switch opcode {
-	case 0x11:
+	case 0x00:
 		fmt.Println(":)")
 		// fmt.Printf("%02x\n", opcode)
 	default:
