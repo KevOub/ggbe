@@ -2,6 +2,10 @@ package gcpu
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/KevOub/ggbe/pkg/gdebug"
+	"github.com/KevOub/ggbe/pkg/gmmu"
 )
 
 // DEBUG decides whether to enable debugging
@@ -148,17 +152,24 @@ func InitCPU(debug bool) {
 	fmt.Println("CPU Started")
 	if DEBUG {
 		fmt.Println("\t debugging active")
+		fmt.Println("")
 	}
+
+	CPUReg.PC = 0
+	gmmu.InitMMU()
 }
 
 // DoInstruction does instruction
-func DoInstruction(opcode uint8) {
+func DoInstruction() {
+	opcode := gmmu.Memory[CPUReg.PC]
 	switch opcode {
-	case 0x00:
-		fmt.Println(":)")
-		// fmt.Printf("%02x\n", opcode)
+	case 0x31:
+		// take value from (insert register) to nn
+
 	default:
-		fmt.Printf("%02x\n is not implemented", opcode)
+		fmt.Printf("%07b\n", opcode)
+		log.Fatal(gdebug.WhatIsThisCode(int(opcode), false))
 
 	}
+	CPUReg.PC++
 }
