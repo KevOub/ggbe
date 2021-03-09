@@ -28,14 +28,22 @@ func (reg SplitRegister) l() uint16 {
 	return (reg.f & 255)
 }
 
-//Change takes the value and updates f()
-func (reg SplitRegister) Change(num uint16) {
-	reg.f = num
+//SetHigh takes the value and updates f()
+func (reg *SplitRegister) SetHigh(num uint16) {
+	reg.f = (reg.f & 255) // Clear higher bits
+	reg.f = (num << 8) | reg.f
+	// TODO broken...
+}
+
+//SetLow takes the value and updates f()
+func (reg *SplitRegister) SetLow(num uint16) {
+	reg.f = (reg.f & 65280) // Clear lower bits
+	reg.f = (num) | reg.f
 	// TODO broken...
 }
 
 //Get gets the value from the register
-func (reg SplitRegister) Get() uint16 {
+func (reg *SplitRegister) Get() uint16 {
 	return reg.f
 }
 
@@ -49,8 +57,8 @@ type Registers struct {
 	BC SplitRegister
 	DE SplitRegister
 	HL SplitRegister
-	SP int
-	PC int
+	SP SplitRegister
+	PC SplitRegister
 }
 
 //Show displays the registers nicely
@@ -117,34 +125,38 @@ func (reg Registers) Show() {
 
 	// SP
 	fmt.Print("SP\t")
-	fmt.Printf("-\t")
-
-	fmt.Printf("-\t")
-
-	value = fmt.Sprintf("%04x", reg.SP)
+	value = fmt.Sprintf("%04x", reg.SP.h())
 	fmt.Printf("%s\t", value)
 
-	fmt.Printf("%d", reg.SP)
+	value = fmt.Sprintf("%04x", reg.SP.l())
+	fmt.Printf("%s\t", value)
+
+	value = fmt.Sprintf("%04x", reg.SP.f)
+	fmt.Printf("%s\t", value)
+
+	fmt.Printf("%d", reg.SP.f)
 
 	fmt.Println()
 
 	// PC
 	fmt.Print("PC\t")
-	fmt.Printf("-\t")
-
-	fmt.Printf("-\t")
-
-	value = fmt.Sprintf("%04x", reg.SP)
+	value = fmt.Sprintf("%04x", reg.PC.h())
 	fmt.Printf("%s\t", value)
 
-	fmt.Printf("%d", reg.HL.f)
+	value = fmt.Sprintf("%04x", reg.PC.l())
+	fmt.Printf("%s\t", value)
+
+	value = fmt.Sprintf("%04x", reg.PC.f)
+	fmt.Printf("%s\t", value)
+
+	fmt.Printf("%d", reg.SP.f)
 
 	fmt.Println()
 
 }
 
 // CPUReg are the live registers
-var CPUReg = Registers{SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, 0, 0}
+var CPUReg = Registers{SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}}
 
 // InitCPU creates cpu
 func InitCPU(debug bool) {
@@ -155,21 +167,27 @@ func InitCPU(debug bool) {
 		fmt.Println("")
 	}
 
-	CPUReg.PC = 0
+	CPUReg.PC.f = 0
 	gmmu.InitMMU()
 }
 
 // DoInstruction does instruction
 func DoInstruction() {
-	opcode := gmmu.Memory[CPUReg.PC]
+	opcode := gmmu.Memory[CPUReg.PC.f]
 	switch opcode {
 	case 0x31:
-		// take value from (insert register) to nn
+		// TODO check setting low and high bits
+		// Load SP into the program counter
+		CPUReg.SP.SetLow(uint16(gmmu.Memory[CPUReg.PC.f]))
+		CPUReg.PC.f++
+		CPUReg.SP.SetHigh(uint16(gmmu.Memory[CPUReg.PC.f]))
+
+	case 0xff:
 
 	default:
-		fmt.Printf("%07b\n", opcode)
+		fmt.Printf("%08b \n", opcode)
 		log.Fatal(gdebug.WhatIsThisCode(int(opcode), false))
 
 	}
-	CPUReg.PC++
+	CPUReg.PC.f++
 }

@@ -52,10 +52,10 @@ func WhatIsThisCode(num int, prefix bool) string {
 	}
 
 	// strip dumb characters with regex
-	reg, err := regexp.Compile("[\\n+,+{}+\"+\\t+]")
+	reg, err := regexp.Compile("[,+{}+\"+\\t+]")
 	if err != nil {
 		log.Fatal(err)
 	}
 	processedString := reg.ReplaceAllString(lookup, "")
-	return processedString
+	return "-----\n" + processedString
 }
