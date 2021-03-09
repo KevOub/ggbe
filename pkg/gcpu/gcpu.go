@@ -21,13 +21,49 @@ REGISTERS
 
 // SplitRegister split from 16 bits to 8 bits
 type SplitRegister struct {
-	f uint16
+	h uint8
+	l uint8
 }
 
-func (reg SplitRegister) l() uint16 {
-	return (reg.f & 255)
+func (reg SplitRegister) f() uint16 {
+	return uint16(((reg.h << 8) | reg.l))
 }
 
+//Set does exactly what it sounds like
+func (reg *SplitRegister) Set(num uint16) {
+	reg.h = uint8(num >> 8)
+	reg.l = uint8(num & 255)
+}
+
+//Increment increses lower bit. If overflow, set high bit
+func (reg *SplitRegister) Increment() {
+	tmp := reg.l + 1
+	if tmp < CPUReg.PC.l {
+		reg.h++
+	} else {
+		reg.l++
+	}
+
+}
+
+//PrettyPrint outputs the register, pretty
+func (reg SplitRegister) PrettyPrint(name string) {
+	fmt.Printf("%s\t", name)
+	value := fmt.Sprintf("%02x", reg.h)
+	fmt.Printf("%s\t", value)
+
+	value = fmt.Sprintf("%02x", reg.l)
+	fmt.Printf("%s\t", value)
+
+	value = fmt.Sprintf("%04x", reg.f())
+	fmt.Printf("%s\t", value)
+
+	fmt.Printf("%d\t", reg.f())
+	fmt.Printf("%08b", reg.f())
+	fmt.Println()
+}
+
+/*
 //SetHigh takes the value and updates f()
 func (reg *SplitRegister) SetHigh(num uint16) {
 	reg.f = (reg.f & 255) // Clear higher bits
@@ -42,14 +78,15 @@ func (reg *SplitRegister) SetLow(num uint16) {
 	// TODO broken...
 }
 
+func (reg SplitRegister) h() uint16 {
+	return (reg.f & 65280)
+}
+
 //Get gets the value from the register
 func (reg *SplitRegister) Get() uint16 {
 	return reg.f
 }
-
-func (reg SplitRegister) h() uint16 {
-	return (reg.f & 65280)
-}
+*/
 
 // Registers are the cpu registers
 type Registers struct {
@@ -64,99 +101,29 @@ type Registers struct {
 //Show displays the registers nicely
 func (reg Registers) Show() {
 	// HEADER
-	fmt.Println("ADDR\tHIGH\tLOW\tTOTAL\tTOTAL")
-	var value = ""
+	fmt.Println("ADDR\tHIGH\tLOW\tTOTAL\tTOTAL\tBIN")
 	// AF
-	fmt.Print("AF\t")
-	value = fmt.Sprintf("%04x", reg.AF.h())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.AF.l())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.AF.f)
-	fmt.Printf("%s\t", value)
-
-	fmt.Printf("%d", reg.AF.f)
-	fmt.Println()
+	CPUReg.AF.PrettyPrint("AF")
 
 	// BC
-	fmt.Print("BC\t")
-	value = fmt.Sprintf("%04x", reg.BC.h())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.BC.l())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.BC.f)
-	fmt.Printf("%s\t", value)
-
-	fmt.Printf("%d", reg.BC.f)
-	fmt.Println()
+	CPUReg.BC.PrettyPrint("BC")
 
 	// DE
-	fmt.Print("DE\t")
-	value = fmt.Sprintf("%04x", reg.DE.h())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.DE.l())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.DE.f)
-	fmt.Printf("%s\t", value)
-
-	fmt.Printf("%d", reg.DE.f)
-	fmt.Println()
+	CPUReg.DE.PrettyPrint("DE")
 
 	// HL
-	fmt.Print("HL\t")
-	value = fmt.Sprintf("%04x", reg.HL.h())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.HL.l())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.HL.f)
-	fmt.Printf("%s\t", value)
-
-	fmt.Printf("%d", reg.HL.f)
-
-	fmt.Println()
+	CPUReg.HL.PrettyPrint("HL")
 
 	// SP
-	fmt.Print("SP\t")
-	value = fmt.Sprintf("%04x", reg.SP.h())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.SP.l())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.SP.f)
-	fmt.Printf("%s\t", value)
-
-	fmt.Printf("%d", reg.SP.f)
-
-	fmt.Println()
+	CPUReg.SP.PrettyPrint("SP")
 
 	// PC
-	fmt.Print("PC\t")
-	value = fmt.Sprintf("%04x", reg.PC.h())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.PC.l())
-	fmt.Printf("%s\t", value)
-
-	value = fmt.Sprintf("%04x", reg.PC.f)
-	fmt.Printf("%s\t", value)
-
-	fmt.Printf("%d", reg.SP.f)
-
-	fmt.Println()
+	CPUReg.PC.PrettyPrint("PC")
 
 }
 
 // CPUReg are the live registers
-var CPUReg = Registers{SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}, SplitRegister{0}}
+var CPUReg = Registers{SplitRegister{0, 0}, SplitRegister{0, 0}, SplitRegister{0, 0}, SplitRegister{0, 0}, SplitRegister{0, 0}, SplitRegister{0, 0}}
 
 // InitCPU creates cpu
 func InitCPU(debug bool) {
@@ -167,27 +134,50 @@ func InitCPU(debug bool) {
 		fmt.Println("")
 	}
 
-	CPUReg.PC.f = 0
+	CPUReg.PC.Set(0)
+	CPUReg.SP.Set(0xFFFE)
 	gmmu.InitMMU()
 }
 
 // DoInstruction does instruction
 func DoInstruction() {
-	opcode := gmmu.Memory[CPUReg.PC.f]
+	opcode := gmmu.Memory[CPUReg.PC.f()]
+	value := fmt.Sprintf("%02x", opcode)
+	fmt.Printf("OPCODE:\t0x%s\n", value)
+	CPUReg.Show()
+	fmt.Println("\n+++")
 	switch opcode {
+	// NOOP
+	case 0x00:
+		fmt.Print()
+
+	// LD SP,PC
 	case 0x31:
 		// TODO check setting low and high bits
 		// Load SP into the program counter
-		CPUReg.SP.SetLow(uint16(gmmu.Memory[CPUReg.PC.f]))
-		CPUReg.PC.f++
-		CPUReg.SP.SetHigh(uint16(gmmu.Memory[CPUReg.PC.f]))
+
+		CPUReg.SP.h = uint8(gmmu.Memory[CPUReg.PC.f()])
+		CPUReg.PC.Increment()
+		CPUReg.SP.l = uint8(gmmu.Memory[CPUReg.PC.f()])
+
+	// HALT
+	case 0x76:
+		CPUReg.PC.Increment()
+		CPUReg.AF.h += uint8(gmmu.Memory[int(CPUReg.PC.f()+1)])
+
+	case 0xC6:
 
 	case 0xff:
+		// RST n = CALL n*8
+
+		CPUReg.PC.Set(0x0038)
 
 	default:
 		fmt.Printf("%08b \n", opcode)
 		log.Fatal(gdebug.WhatIsThisCode(int(opcode), false))
 
 	}
-	CPUReg.PC.f++
+
+	CPUReg.PC.Increment()
+
 }
